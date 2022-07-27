@@ -22,6 +22,14 @@ struct GameBitmap
     uint32_t * data;
 };
 
+struct GameRect
+{
+    int x;
+    int y;
+    int w;
+    int h;
+};
+
 
 struct
 {
@@ -65,7 +73,7 @@ bool gRunning;
 
 // test bmp
 GameBitmap mehworm;
-
+GameBitmap fethyr;
 
 /////////////////////////////////////
 // Function declarations
@@ -74,7 +82,7 @@ void InitGraphicsBuffer(void);
 void ClearScreen(void);
 void PlotPixel(uint16_t x, uint16_t y, uint8_t r, uint8_t g, uint8_t b);
 void LoadBitmapFromPNG(GameBitmap * gameBitmap, const char * filepath);
-void BlitBitmap(GameBitmap * gameBitmap, int x, int y);
+void BlitBitmap(GameBitmap * gameBitmap, int x, int y, GameRect * srcRect);
 
 //
 /////////////////////////////////////
@@ -151,6 +159,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int cm
     player.spd = 4;
 
     LoadBitmapFromPNG(&mehworm, "mehworm_beta.png");
+    LoadBitmapFromPNG(&fethyr, "fethyr.png");
 
     gRunning = true;
 
@@ -217,20 +226,12 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int cm
 
         ClearScreen();
 
-        // draw player
-        //Pixel32 bmpPixel;
-        //int bmpPixel_i = 0;
-        //for (int y = player.y; y < player.y + mehworm.h; y++)
-        //{
-        //    for (int x = player.x; x < player.x + mehworm.w; x++)
-        //    {
-        //        bmpPixel.hexValue = mehworm.data[bmpPixel_i];
-        //        if (bmpPixel.a > 0)
-        //            PlotPixel(x, y, bmpPixel.r, bmpPixel.g, bmpPixel.b);
-        //        bmpPixel_i++;
-        //    }
-        //}
-        BlitBitmap(&mehworm, player.x, player.y);
+        // Draw mehworm
+        BlitBitmap(&mehworm, player.x, player.y, NULL);
+
+        // Draw Fethyr
+        GameRect fethyrRect = { 96, 96 * 4, 96, 96 };
+        BlitBitmap(&fethyr, 40, 40, &fethyrRect);
         
         StretchDIBits(dc, 0, 0, windowWidth, windowHeight, 0, 0, SCREEN_W, SCREEN_H, graphicsBuffer.data, &graphicsBuffer.info, DIB_RGB_COLORS, SRCCOPY);
         ReleaseDC(window, dc);
@@ -344,19 +345,28 @@ void LoadBitmapFromPNG(GameBitmap * gameBitmap, const char * filepath)
 }
 
 
-void BlitBitmap(GameBitmap * gameBitmap, int x, int y)
+void BlitBitmap(GameBitmap * gameBitmap, int x, int y, GameRect * srcRect)
 {
     Pixel32 bmpPixel;
-    int bmpPixel_i = 0;
+    GameRect srcUse = { 0, 0, gameBitmap->w, gameBitmap->h };
 
-    for (int y = player.y; y < player.y + mehworm.h; y++)
+    if (srcRect != NULL)
     {
-        for (int x = player.x; x < player.x + mehworm.w; x++)
+        srcUse = *srcRect;
+    }
+
+    for (int dy = y; dy < y + srcUse.h; dy++)
+    {
+        for (int dx = x; dx < x + srcUse.w; dx++)
         {
-            bmpPixel.hexValue = mehworm.data[bmpPixel_i];
+            int bmpXOffset = dx - x + srcUse.x;
+            int bmpYOffset = dy - y + srcUse.y;
+
+            bmpPixel.hexValue = gameBitmap->data[bmpYOffset * gameBitmap->w + bmpXOffset];
             if (bmpPixel.a > 0)
-                PlotPixel(x, y, bmpPixel.r, bmpPixel.g, bmpPixel.b);
-            bmpPixel_i++;
+            {
+                PlotPixel(dx, dy, bmpPixel.r, bmpPixel.g, bmpPixel.b);
+            }
         }
     }
 }
