@@ -82,7 +82,7 @@ void InitGraphicsBuffer(void);
 void ClearScreen(void);
 void PlotPixel(uint16_t x, uint16_t y, uint8_t r, uint8_t g, uint8_t b);
 void LoadBitmapFromPNG(GameBitmap * gameBitmap, const char * filepath);
-void BlitBitmap(GameBitmap * gameBitmap, int x, int y, GameRect * srcRect);
+void BlitBitmap(GameBitmap * gameBitmap, int x, int y, GameRect * srcRect, bool flipped);
 
 //
 /////////////////////////////////////
@@ -227,11 +227,12 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prevInstance, LPSTR cmd, int cm
         ClearScreen();
 
         // Draw mehworm
-        BlitBitmap(&mehworm, player.x, player.y, NULL);
+        BlitBitmap(&mehworm, player.x, player.y, NULL, false);
 
         // Draw Fethyr
-        GameRect fethyrRect = { 96, 96 * 4, 96, 96 };
-        BlitBitmap(&fethyr, 40, 40, &fethyrRect);
+        GameRect fethyrRect = { 96, 96 * 5, 96, 96 };
+        BlitBitmap(&fethyr, 40, 40, &fethyrRect, true);
+        BlitBitmap(&fethyr, 136, 40, &fethyrRect, false);
         
         StretchDIBits(dc, 0, 0, windowWidth, windowHeight, 0, 0, SCREEN_W, SCREEN_H, graphicsBuffer.data, &graphicsBuffer.info, DIB_RGB_COLORS, SRCCOPY);
         ReleaseDC(window, dc);
@@ -345,7 +346,7 @@ void LoadBitmapFromPNG(GameBitmap * gameBitmap, const char * filepath)
 }
 
 
-void BlitBitmap(GameBitmap * gameBitmap, int x, int y, GameRect * srcRect)
+void BlitBitmap(GameBitmap * gameBitmap, int x, int y, GameRect * srcRect, bool flipped)
 {
     Pixel32 bmpPixel;
     GameRect srcUse = { 0, 0, gameBitmap->w, gameBitmap->h };
@@ -359,8 +360,10 @@ void BlitBitmap(GameBitmap * gameBitmap, int x, int y, GameRect * srcRect)
     {
         for (int dx = x; dx < x + srcUse.w; dx++)
         {
-            int bmpXOffset = dx - x + srcUse.x;
+            int bmpXOffset = (flipped) ? (srcUse.x + srcUse.w - (dx - x)) : (dx - x + srcUse.x);
             int bmpYOffset = dy - y + srcUse.y;
+
+            
 
             bmpPixel.hexValue = gameBitmap->data[bmpYOffset * gameBitmap->w + bmpXOffset];
             if (bmpPixel.a > 0)
